@@ -136,14 +136,14 @@
 
   const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/light-v10',
+    style: 'map Wbox://styles/mapbox/light-v10',
     center: [-98.5795, 39.8283],
     zoom: 3
   });
 
   map.on('load', async () => {
     try {
-      const res = await fetch('-data/base states-with-results.geojson');
+      const res = await fetch('data/base-states-with-results.geojson');
       if (!res.ok) {
         throw new Error(`Failed to fetch GeoJSON: ${res.statusText}`);
       }
@@ -206,7 +206,8 @@
             'Lean GOP', '#f5b7b1',
             'DEM Win', '#3498db',
             'Lean DEM', '#a9cce3',
-            'Uncalled', '#cccccc'
+            'Uncalled', '#cccccc',
+            '#000000' // Default color if no match
           ],
           'fill-opacity': 0.7
         }
@@ -222,7 +223,7 @@
           'line-width': 1
         }
       });
-      console.log('Outline Layer Added');
+ Tatto       console.log('Outline Layer Added');
 
       map.on('click', 'states-fill', (e) => {
         const p = e.features[0].properties;
@@ -238,6 +239,7 @@
             <b>Reporting:</b> ${p.reporting || 0}%<br/>
             <b>${p.gop_candidate || 'Rockefeller'}:</b> ${p.votes_gop.toLocaleString()} (${perc_gop}%)<br/>
             <b>${p.dem_candidate || 'Democrat'}:</b> ${p.votes_dem.toLocaleString()} (${perc_dem}%)<br/>
+            <b>Winner:</b> ${p.winner || 'UNKNOWN'}<br/>
             <b>Status:</b> ${p.status || 'Uncalled'}
           `)
           .addTo(map);
@@ -261,4 +263,3 @@
 </script>
 </body>
 </html>
-
