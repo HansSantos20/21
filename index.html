@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -24,8 +23,8 @@
 </head>
 <body>
 <div id="header">
-  <div class="stat-box" id="ev-total">Electoral Votes — Rockefeller: 0, Gephardt: 0</div>
-  <div class="stat-box" id="pv-total">Popular Vote — Rockefeller: 0 (0%), Gephardt: 0 (0%)</div>
+  <div class="stat-box" id="ev-total">Electoral Votes — Rockefeller: 0, Democrat: 0</div>
+  <div class="stat-box" id="pv-total">Popular Vote — Rockefeller: 0 (0%), Democrat: 0 (0%)</div>
   <div class="stat-box" id="reporting">Reporting: 0%</div>
 </div>
 <div id="map"></div>
@@ -39,102 +38,52 @@
     zoom: 3
   });
 
-  let baseGeojson;
-
-  async function fetchElectionData() {
-    try {
-      const res = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vRPVFaOaZ-6eR0zlTAoybirKz9y-QwDKdWehAlNvHtH1AmcxTf3-UYUzaoSHUoY3tIEUlNTIFjqr_Mb/pub?output=csv&t=' + Date.now());
-      const text = await res.text();
-      const rows = text.trim().split('\n').map(r => r.split(','));
-
-      const headers = rows[0].map(h => h.trim().toUpperCase().replace(/\s/g, '_'));
-      const data = rows.slice(1)
-        .map(row => Object.fromEntries(row.map((v, i) => [headers[i], v.trim()])))
-        .filter(row => row['ABBREVIATIONS']);
-
-      const lookup = Object.fromEntries(data.map(row => {
-        const gop = parseInt(row['GOP_VOTES'].replace(/,/g, '')) || 0;
-        const dem = parseInt(row['DNC_VOTES'].replace(/,/g, '')) || 0;
-        const total_votes = parseInt(row['TOTAL_VOTES'].replace(/,/g, '')) || 0;
-        const reporting = parseFloat(row['REPORTING'].replace('%','')) || 0;
-        const margin = Math.abs(gop - dem);
-        const threshold = total_votes * 0.05;
-
-        let status = 'Uncalled';
-        if (reporting > 0) {
-          if (gop > dem) {
-            status = margin >= threshold ? 'GOP Win' : 'Lean GOP';
-          } else if (dem > gop) {
-            status = margin >= threshold ? 'DEM Win' : 'Lean DEM';
-          }
-        }
-
-        return [row['ABBREVIATIONS'], {
-          electoral_votes: parseInt(row['ELECTORAL_VOTES']) || 0,
-          reporting,
-          gop_candidate: row['GOP_CANDIDATE'],
-          dem_candidate: row['DNC_CANDIDATE'],
-          votes_gop: gop,
-          votes_dem: dem,
-          winner: row['WINNER'],
-          status
-        }];
-      }));
-
-      let ev_rockefeller = 0;
-      let ev_gephardt = 0;
-      let total_gop_votes = 0;
-      let total_dem_votes = 0;
-      let total_reporting = 0;
-      let state_count = 0;
-
-      const updated = JSON.parse(JSON.stringify(baseGeojson));
-      updated.features.forEach(f => {
-        const abbr = f.properties.abbr;
-        const d = lookup[abbr];
-        if (!d) return;
-
-        f.properties.votes_gop = d.votes_gop;
-        f.properties.votes_dem = d.votes_dem;
-        f.properties.gop_candidate = d.gop_candidate;
-        f.properties.dem_candidate = d.dem_candidate;
-        f.properties.winner = d.winner;
-        f.properties.status = d.status;
-        f.properties.electoral_votes = d.electoral_votes;
-        f.properties.reporting = d.reporting;
-
-        total_gop_votes += d.votes_gop;
-        total_dem_votes += d.votes_dem;
-        total_reporting += d.reporting;
-        state_count++;
-
-        if (d.winner.includes(d.gop_candidate)) ev_rockefeller += d.electoral_votes;
-        else if (d.winner.includes(d.dem_candidate)) ev_gephardt += d.electoral_votes;
-      });
-
-      const total_votes = total_gop_votes + total_dem_votes;
-      const perc_gop = ((total_gop_votes / total_votes) * 100).toFixed(1);
-      const perc_dem = ((total_dem_votes / total_votes) * 100).toFixed(1);
-
-      document.getElementById('ev-total').textContent = `Electoral Votes — Rockefeller: ${ev_rockefeller}, Gephardt: ${ev_gephardt}`;
-      document.getElementById('pv-total').textContent = `Popular Vote — Rockefeller: ${total_gop_votes.toLocaleString()} (${perc_gop}%), Gephardt: ${total_dem_votes.toLocaleString()} (${perc_dem}%)`;
-      document.getElementById('reporting').textContent = `Reporting: ${(total_reporting / state_count).toFixed(1)}%`;
-
-      map.getSource('states').setData(updated);
-    } catch (err) {
-      console.error('⚠️ Error fetching or parsing election data:', err);
-    }
-  }
-
   map.on('load', async () => {
+    // Fetch the GeoJSON data
     const res = await fetch('base-states-with-results.geojson');
-    baseGeojson = await res.json();
+    const geojsonData = await res.json();
 
-    map.addSource('states', {
-      type: 'geojson',
-      data: baseGeojson
+    // Calculate totals for header
+    let ev_rockefeller = 0;
+    let ev_democrat = 0;
+    let total_gop_votes = 0;
+    let total_dem_votes = 0;
+    let total_reporting = 0;
+    let state_count = 0;
+
+    geojsonData.features.forEach(f => {
+      const props = f.properties;
+      if (props.abbr === 'PR') return; // Skip Puerto Rico for electoral vote calculations
+
+      total_gop_votes += props.votes_gop || 0;
+      total_dem_votes += props.votes_dem || 0;
+      total_reporting += props.reporting || 0;
+      state_count++;
+
+      if (props.winner === props.gop_candidate) {
+        ev_rockefeller += props.electoral_votes || 0;
+      } else if (props.winner === props.dem_candidate) {
+        ev_democrat += props.electoral_votes || 0;
+      }
     });
 
+    const total_votes = total_gop_votes + total_dem_votes;
+    const perc_gop = total_votes > 0 ? ((total_gop_votes / total_votes) * 100).toFixed(1) : 0;
+    const perc_dem = total_votes > 0 ? ((total_dem_votes / total_votes) * 100).toFixed(1) : 0;
+    const avg_reporting = state_count > 0 ? (total_reporting / state_count).toFixed(1) : 0;
+
+    // Update header
+    document.getElementById('ev-total').textContent = `Electoral Votes — Rockefeller: ${ev_rockefeller}, Democrat: ${ev_democrat}`;
+    document.getElementById('pv-total').textContent = `Popular Vote — Rockefeller: ${total_gop_votes.toLocaleString()} (${perc_gop}%), Democrat: ${total_dem_votes.toLocaleString()} (${perc_dem}%)`;
+    document.getElementById('reporting').textContent = `Reporting: ${avg_reporting}%`;
+
+    // Add GeoJSON source
+    map.addSource('states', {
+      type: 'geojson',
+      data: geojsonData
+    });
+
+    // Add fill layer for states
     map.addLayer({
       id: 'states-fill',
       type: 'fill',
@@ -153,6 +102,7 @@
       }
     });
 
+    // Add outline layer for states
     map.addLayer({
       id: 'states-outline',
       type: 'line',
@@ -163,26 +113,33 @@
       }
     });
 
+    // Add click event for popups
     map.on('click', 'states-fill', (e) => {
       const p = e.features[0].properties;
-      const total = p.votes_gop + p.votes_dem;
-      const perc_gop = ((p.votes_gop / total) * 100).toFixed(1);
-      const perc_dem = ((p.votes_dem / total) * 100).toFixed(1);
+      const total = (p.votes_gop || 0) + (p.votes_dem || 0);
+      const perc_gop = total > 0 ? ((p.votes_gop / total) * 100).toFixed(1) : 0;
+      const perc_dem = total > 0 ? ((p.votes_dem / total) * 100).toFixed(1) : 0;
+
       new mapboxgl.Popup()
         .setLngLat(e.lngLat)
         .setHTML(`
           <strong>${p.NAME}</strong><br/>
-          <b>Electoral Votes:</b> ${p.electoral_votes}<br/>
-          <b>Reporting:</b> ${p.reporting}%<br/>
-          <b>${p.gop_candidate}:</b> ${p.votes_gop.toLocaleString()} (${perc_gop}%)<br/>
-          <b>${p.dem_candidate}:</b> ${p.votes_dem.toLocaleString()} (${perc_dem}%)<br/>
-          <b>Status:</b> ${p.status}
+          <b>Electoral Votes:</b> ${p.electoral_votes || 0}<br/>
+          <b>Reporting:</b> ${p.reporting || 0}%<br/>
+          <b>${p.gop_candidate || 'Rockefeller'}:</b> ${p.votes_gop.toLocaleString()} (${perc_gop}%)<br/>
+          <b>${p.dem_candidate || 'Democrat'}:</b> ${p.votes_dem.toLocaleString()} (${perc_dem}%)<br/>
+          <b>Status:</b> ${p.status || 'Uncalled'}
         `)
         .addTo(map);
     });
 
-    await fetchElectionData();
-    setInterval(fetchElectionData, 10000);
+    // Add cursor change on hover
+    map.on('mouseenter', 'states-fill', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'states-fill', () => {
+      map.getCanvas().style.cursor = '';
+    });
   });
 </script>
 </body>
