@@ -8,7 +8,7 @@
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css" rel="stylesheet" />
   <style>
     body { margin: 0; padding: 0; font-family: sans-serif; }
-    #map { position: absolute; top: 100px; bottom: 0; width: 100%; }
+    #map { position: absolute; top: 160px; bottom: 0; width: 100%; }
     #header {
       position: absolute;
       top: 0; left: 0; right: 0;
@@ -85,10 +85,27 @@
       width: 100%;
       gap: 15px;
     }
+    .candidate-stats {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 800px;
+      font-size: 12px;
+    }
+    .candidate-stat-left, .candidate-stat-right {
+      text-align: center;
+      width: 150px;
+    }
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
 <div id="header">
+  <div class="title">1984 Live Election Map</div>
   <div class="progress-container">
     <div class="candidate-labels">
       <span>Rockefeller: <span id="rockefeller-votes">0</span></span>
@@ -107,8 +124,11 @@
       <img src="images/Dick_Gephardt_portrait.jpg" alt="Gephardt" class="candidate-image">
     </div>
   </div>
-  <div class="stat-box" id="pv-total">Popular Vote — Rockefeller: 0 (0%), Democrat: 0 (0%)</div>
-  <div class="stat-box" id="reporting">Reporting: 0%</div>
+  <div class="candidate-stats">
+    <div class="candidate-stat-left" id="rockefeller-pv">Rockefeller: 0 (0%)</div>
+    <div class="stat-box" id="reporting">Reporting: 0%</div>
+    <div class="candidate-stat-right" id="democrat-pv">Democrat: 0 (0%)</div>
+  </div>
 </div>
 <div id="map"></div>
 <script>
@@ -164,7 +184,8 @@
       document.getElementById('democrat-bar').style.width = `${(ev_democrat / 538) * 100}%`;
       document.getElementById('rockefeller-label').textContent = ev_rockefeller;
       document.getElementById('democrat-label').textContent = ev_democrat;
-      document.getElementById('pv-total').textContent = `Popular Vote — Rockefeller: ${total_gop_votes.toLocaleString()} (${perc_gop}%), Democrat: ${total_dem_votes.toLocaleString()} (${perc_dem}%)`;
+      document.getElementById('rockefeller-pv').textContent = `Rockefeller: ${total_gop_votes.toLocaleString()} (${perc_gop}%)`;
+      document.getElementById('democrat-pv').textContent = `Democrat: ${total_dem_votes.toLocaleString()} (${perc_dem}%)`;
       document.getElementById('reporting').textContent = `Reporting: ${avg_reporting}%`;
 
       map.addSource('states', {
