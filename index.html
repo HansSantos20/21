@@ -16,14 +16,75 @@
       padding: 10px 20px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
       z-index: 1000;
     }
     .stat-box { margin-right: 20px; }
+    #ev-bar-container {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-right: 20px;
+    }
+    #ev-bar {
+      width: 100%;
+      height: 20px;
+      background: #cccccc;
+      position: relative;
+      display: flex;
+    }
+    #ev-bar-dem {
+      height: 100%;
+      background: #3498db;
+      position: absolute;
+      left: 0;
+    }
+    #ev-bar-gop {
+      height: 100%;
+      background: #e74c3c;
+      position: absolute;
+      right: 0;
+    }
+    #ev-bar-marker {
+      position: absolute;
+      height: 100%;
+      width: 2px;
+      background: black;
+      left: calc(270 / 538 * 100%);
+    }
+    #ev-bar-marker-label {
+      position: absolute;
+      top: 25px;
+      left: calc(270 / 538 * 100%);
+      transform: translateX(-50%);
+      font-size: 12px;
+    }
+    #ev-labels {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+    #ev-label-dem { color: #3498db; }
+    #ev-label-gop { color: #e74c3c; }
   </style>
 </head>
 <body>
 <div id="header">
-  <div class="stat-box" id="ev-total">Electoral Votes — Rockefeller: 0, Democrat: 0</div>
+  <div id="ev-bar-container">
+    <div id="ev-bar">
+      <div id="ev-bar-dem" style="width: 0%"></div>
+      <div id="ev-bar-gop" style="width: 0%"></div>
+      <div id="ev-bar-marker"></div>
+      <div id="ev-bar-marker-label">270</div>
+    </div>
+    <div id="ev-labels">
+      <span id="ev-label-dem">Democrat: 0 (270 to win)</span>
+      <span id="ev-label-gop">Rockefeller: 0 (270 to win)</span>
+    </div>
+  </div>
   <div class="stat-box" id="pv-total">Popular Vote — Rockefeller: 0 (0%), Democrat: 0 (0%)</div>
   <div class="stat-box" id="reporting">Reporting: 0%</div>
 </div>
@@ -72,8 +133,16 @@
     const perc_dem = total_votes > 0 ? ((total_dem_votes / total_votes) * 100).toFixed(1) : 0;
     const avg_reporting = state_count > 0 ? (total_reporting / state_count).toFixed(1) : 0;
 
-    // Update header
-    document.getElementById('ev-total').textContent = `Electoral Votes — Rockefeller: ${ev_rockefeller}, Democrat: ${ev_democrat}`;
+    // Update electoral vote bar
+    const total_ev = 538;
+    const perc_dem_ev = (ev_democrat / total_ev) * 100;
+    const perc_gop_ev = (ev_rockefeller / total_ev) * 100;
+    document.getElementById('ev-bar-dem').style.width = `${perc_dem_ev}%`;
+    document.getElementById('ev-bar-gop').style.width = `${perc_gop_ev}%`;
+    document.getElementById('ev-label-dem').textContent = `Democrat: ${ev_democrat} (${270 - ev_democrat} to win)`;
+    document.getElementById('ev-label-gop').textContent = `Rockefeller: ${ev_rockefeller} (${270 - ev_rockefeller} to win)`;
+
+    // Update popular vote and reporting
     document.getElementById('pv-total').textContent = `Popular Vote — Rockefeller: ${total_gop_votes.toLocaleString()} (${perc_gop}%), Democrat: ${total_dem_votes.toLocaleString()} (${perc_dem}%)`;
     document.getElementById('reporting').textContent = `Reporting: ${avg_reporting}%`;
 
@@ -100,7 +169,7 @@
         ],
         'fill-opacity': 0.7
       }
-    });
+    ADE);
 
     // Add outline layer for states
     map.addLayer({
