@@ -73,6 +73,19 @@
       margin-bottom: 5px;
     }
     .stat-box { margin-top: 5px; font-size: 12px; }
+    /* Updated styles for even larger circular images */
+    .candidate-image {
+      width: 50px; /* Increased from 40px */
+      height: 50px; /* Increased from 40px */
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .progress-bar-container {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      gap: 12px; /* Increased from 10px to accommodate larger images */
+    }
   </style>
 </head>
 <body>
@@ -82,13 +95,17 @@
       <span>Rockefeller: <span id="rockefeller-votes">0</span></span>
       <span>Democrat: <span id="democrat-votes">0</span></span>
     </div>
-    <div class="progress-bar-wrapper">
-      <div class="threshold-marker"></div>
-      <div class="threshold-label">270 to Win</div>
-      <div class="progress-bar rockefeller" id="rockefeller-bar" style="width: 0%"></div>
-      <div class="progress-bar democrat" id="democrat-bar" style="width: 0%"></div>
-      <div class="vote-label" id="rockefeller-label" style="left: 5px">0</div>
-      <div class="vote-label" id="democrat-label" style="right: 5px">0</div>
+    <div class="progress-bar-container">
+      <img src="rockefeller.jpg" alt="Rockefeller" class="candidate-image">
+      <div class="progress-bar-wrapper">
+        <div class="threshold-marker"></div>
+        <div class="threshold-label">270 to Win</div>
+        <div class="progress-bar rockefeller" id="rockefeller-bar" style="width: 0%"></div>
+        <div class="progress-bar democrat" id="democrat-bar" style="width: 0%"></div>
+        <div class="vote-label" id="rockefeller-label" style="left: 5px">0</div>
+        <div class="vote-label" id="democrat-label" style="right: 5px">0</div>
+      </div>
+      <img src="<blockquote class="imgur-embed-pub" lang="en" data-id="a/uGeE1ns" data-context="false" ><a href="//imgur.com/a/uGeE1ns"></a></blockquote><script async src="//s.imgur.com/min/embed.js" charset="utf-8"></script>" alt="Democrat" class="candidate-image">
     </div>
   </div>
   <div class="stat-box" id="pv-total">Popular Vote — Rockefeller: 0 (0%), Democrat: 0 (0%)</div>
@@ -107,7 +124,6 @@
 
   map.on('load', async () => {
     try {
-      // Fetch the GeoJSON data
       const res = await fetch('base-states-with-results.geojson');
       if (!res.ok) {
         throw new Error(`Failed to fetch GeoJSON: ${res.statusText}`);
@@ -115,7 +131,6 @@
       const geojsonData = await res.json();
       console.log('GeoJSON Data Loaded:', geojsonData);
 
-      // Calculate totals for header
       let ev_rockefeller = 0;
       let ev_democrat = 0;
       let total_gop_votes = 0;
@@ -125,7 +140,7 @@
 
       geojsonData.features.forEach(f => {
         const props = f.properties;
-        if (props.abbr === 'PR') return; // Skip Puerto Rico for electoral vote calculations
+        if (props.abbr === 'PR') return;
 
         total_gop_votes += props.votes_gop || 0;
         total_dem_votes += props.votes_dem || 0;
@@ -144,7 +159,6 @@
       const perc_dem = total_votes > 0 ? ((total_dem_votes / total_votes) * 100).toFixed(1) : 0;
       const avg_reporting = state_count > 0 ? (total_reporting / state_count).toFixed(1) : 0;
 
-      // Update header
       document.getElementById('rockefeller-votes').textContent = ev_rockefeller;
       document.getElementById('democrat-votes').textContent = ev_democrat;
       document.getElementById('rockefeller-bar').style.width = `${(ev_rockefeller / 538) * 100}%`;
@@ -154,14 +168,12 @@
       document.getElementById('pv-total').textContent = `Popular Vote — Rockefeller: ${total_gop_votes.toLocaleString()} (${perc_gop}%), Democrat: ${total_dem_votes.toLocaleString()} (${perc_dem}%)`;
       document.getElementById('reporting').textContent = `Reporting: ${avg_reporting}%`;
 
-      // Add GeoJSON source
       map.addSource('states', {
         type: 'geojson',
         data: geojsonData
       });
       console.log('GeoJSON Source Added');
 
-      // Add fill layer for states
       map.addLayer({
         id: 'states-fill',
         type: 'fill',
@@ -181,7 +193,6 @@
       });
       console.log('Fill Layer Added');
 
-      // Add outline layer for states
       map.addLayer({
         id: 'states-outline',
         type: 'line',
@@ -193,7 +204,6 @@
       });
       console.log('Outline Layer Added');
 
-      // Add click event for popups
       map.on('click', 'states-fill', (e) => {
         const p = e.features[0].properties;
         const total = (p.votes_gop || 0) + (p.votes_dem || 0);
@@ -213,7 +223,6 @@
           .addTo(map);
       });
 
-      // Add cursor change on hover
       map.on('mouseenter', 'states-fill', () => {
         map.getCanvas().style.cursor = 'pointer';
       });
